@@ -3,7 +3,6 @@ package group
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -24,20 +23,20 @@ func init() {
 }
 
 func Create(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
+	log.Println("Create group route")
 
 	var newGroup group.Group
 
-	_ = json.NewDecoder(r.Body).Decode(&newGroup)
+	json.NewDecoder(r.Body).Decode(&newGroup)
 
 	group, err := groupCollection.InsertOne(context.TODO(), newGroup)
 
 	if err != nil {
-		log.Fatalln("Error on inserting new Group", err)
+		log.Println("Error on inserting new Group", err)
 	}
 
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-
 	json.NewEncoder(w).Encode(group)
 }
 
@@ -81,7 +80,6 @@ func List(w http.ResponseWriter, r *http.Request) {
 }
 
 func Read(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
 	params := mux.Vars(r)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 
@@ -91,20 +89,23 @@ func Read(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println("Error reading Group", err)
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(group)
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
 
 	params := mux.Vars(r)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 
 	var newGroup group.Group
 
-	_ = json.NewDecoder(r.Body).Decode(&newGroup)
+	json.NewDecoder(r.Body).Decode(&newGroup)
 
 	var setElements bson.D
 
@@ -117,25 +118,29 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	updated, err := groupCollection.UpdateOne(context.TODO(), bson.M{"_id": id}, updatedGroup)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println("Error updating group", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(updated)
 }
 
 func Delete(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
 	params := mux.Vars(r)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 
 	deleted, err := groupCollection.DeleteOne(context.TODO(), bson.M{"_id": id})
 
-	fmt.Println(deleted)
-
 	if err != nil {
+		log.Println("Error deleting group", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(deleted)
 }
