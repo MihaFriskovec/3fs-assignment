@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
@@ -17,8 +19,8 @@ import (
 
 // Group schema
 type Group struct {
-	ID   primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Name string             `json:"name"`
+	ID   primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Name string             `json:"name,omitempty" bson:"name"`
 }
 
 // User schema
@@ -53,13 +55,62 @@ func initDB() {
 
 func listGroups(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
+	page, err := strconv.ParseInt(r.FormValue("page"), 10, 32)
+	limit, err := strconv.ParseInt(r.FormValue("limit"), 10, 32)
+	sort := r.FormValue("sort")
+	project := r.FormValue("select")
+
+	// Projection
+	projectFields := strings.Split(project, ",")
+
+	projectionQuery := bson.M{}
+
+	for _, f := range projectFields {
+		projectionQuery[f] = 1
+	}
+
+	fmt.Println(projectionQuery)
+	// END Projection
+
+	// SORT
+	var sortFlied string
+
+	sortOrder := sort[0:1]
+	var sortOrderQuery int
+
+	if sortOrder == "-" || sortOrder == "+" {
+		sortFlied = sort[1:]
+		if sortOrder == "-" {
+			sortOrderQuery = -1
+		}
+	} else {
+		sortOrderQuery = 1
+		sortFlied = sort
+	}
+	// END SORT
+
 	var groups []Group
 	groupsCollection := client.Database("3fs").Collection("groups")
 
-	list, err := groupsCollection.Find(context.TODO(), bson.D{})
+	var query = bson.M{}
+
+	fmt.Println(projectionQuery)
+
+	findOptions := options.Find()
+	// Pagination
+	findOptions.SetLimit(limit)
+	findOptions.SetSkip(page*limit - limit)
+	// Sort
+	findOptions.SetSort(bson.M{sortFlied: sortOrderQuery})
+	// Project/Select
+	if len(projectFields) > 0 {
+		findOptions.SetProjection(projectionQuery)
+	}
+
+	list, err := groupsCollection.Find(context.TODO(), query, findOptions)
 
 	if err != nil {
-		log.Fatalln("Error on inserting new Hero", err)
+		log.Fatalln("Error", err)
 	}
 
 	list.All(context.TODO(), &groups)
@@ -173,9 +224,4 @@ func server() {
 	router.HandleFunc("/api/users/{id}", readUser).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":8080", router))
-}
-
-func main() {
-	initDB()
-	server()
 }
