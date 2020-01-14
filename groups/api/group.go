@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/MihaFriskovec/3fs-assignment/db/helpers"
+	"github.com/MihaFriskovec/3fs-assignment/errors"
 	group "github.com/MihaFriskovec/3fs-assignment/groups/models"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,26 +24,25 @@ func init() {
 }
 
 func Create(w http.ResponseWriter, r *http.Request) {
-	log.Println("Create group route")
-
 	var newGroup group.Group
 
 	json.NewDecoder(r.Body).Decode(&newGroup)
 
 	group, err := groupCollection.InsertOne(context.TODO(), newGroup)
 
+	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
-		log.Println("Error on inserting new Group", err)
+		log.Println("Error creating Group", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error creating Group", 500))
+		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(group)
 }
 
 func List(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
-
 	page, err := strconv.ParseInt(r.FormValue("page"), 10, 32)
 	limit, err := strconv.ParseInt(r.FormValue("limit"), 10, 32)
 	sort := r.FormValue("sort")
@@ -70,12 +70,15 @@ func List(w http.ResponseWriter, r *http.Request) {
 
 	list, err := groupCollection.Find(context.TODO(), query, findOptions)
 
+	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
-		log.Fatalln("Error listing groups", err)
+		log.Fatalln("Error listing Groups", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error listing Groups", 500))
+		return
 	}
 
 	list.All(context.TODO(), &groupsList)
-
 	json.NewEncoder(w).Encode(groupsList)
 }
 
@@ -87,19 +90,19 @@ func Read(w http.ResponseWriter, r *http.Request) {
 
 	err := groupCollection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&group)
 
+	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
 		log.Println("Error reading Group", err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error reading Group", 500))
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(group)
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
-
 	params := mux.Vars(r)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 
@@ -117,13 +120,14 @@ func Update(w http.ResponseWriter, r *http.Request) {
 
 	updated, err := groupCollection.UpdateOne(context.TODO(), bson.M{"_id": id}, updatedGroup)
 
+	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
-		log.Println("Error updating group", err)
+		log.Println("Error updating Group", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error updating Group", 500))
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(updated)
 }
@@ -134,13 +138,14 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	deleted, err := groupCollection.DeleteOne(context.TODO(), bson.M{"_id": id})
 
+	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
-		log.Println("Error deleting group", err)
+		log.Println("Error deleting Group", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error deleting Group", 500))
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(deleted)
 }

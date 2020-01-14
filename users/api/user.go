@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/MihaFriskovec/3fs-assignment/db/helpers"
+	"github.com/MihaFriskovec/3fs-assignment/errors"
 	user "github.com/MihaFriskovec/3fs-assignment/users/models"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
@@ -34,8 +35,9 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	user, err := userCollection.InsertOne(context.TODO(), newUser)
 
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
 		log.Println("Error creating user", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error creating new user", 500))
 		return
 	}
 
@@ -72,13 +74,17 @@ func List(w http.ResponseWriter, r *http.Request) {
 
 	list, err := userCollection.Find(context.TODO(), query, findOptions)
 
+	w.Header().Add("Content-Type", "application/json")
+
 	if err != nil {
 		log.Println("Error listing users", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error reading users", 500))
+		return
 	}
 
 	list.All(context.TODO(), &usersList)
 
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(usersList)
 }
@@ -91,13 +97,14 @@ func Read(w http.ResponseWriter, r *http.Request) {
 
 	err := userCollection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&user)
 
+	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
+		log.Println("Error reading user", err)
 		w.WriteHeader(http.StatusNotFound)
-		log.Println("Error getting user", err)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "User with given id not found", 404))
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)
 }
@@ -132,11 +139,14 @@ func Update(w http.ResponseWriter, r *http.Request) {
 
 	updated, err := userCollection.UpdateOne(context.TODO(), bson.M{"_id": id}, updatedUser)
 
+	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
 		log.Println("Error updating user", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error updating user", 500))
+		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(updated)
 }
@@ -147,13 +157,14 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	deleted, err := userCollection.DeleteOne(context.TODO(), bson.M{"_id": id})
 
+	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("Error deleting user", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error updating user", 500))
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(deleted)
 }
