@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -26,7 +25,7 @@ func init() {
 	if err1 != nil {
 		log.Fatal("Couldn't ping to the database", err1)
 	} else {
-		fmt.Println("Connected to MongoDB!")
+		log.Println("Connected to MongoDB")
 
 		c = client
 	}
@@ -35,7 +34,7 @@ func init() {
 func ConnectDatabase(databaseName string) *mongo.Database {
 	database := c.Database(databaseName)
 
-	fmt.Println("Connected to Database!", databaseName)
+	log.Println("Connected to Database: ", databaseName)
 
 	return database
 }

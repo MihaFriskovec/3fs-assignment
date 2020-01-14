@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -24,11 +23,9 @@ func init() {
 }
 
 func Create(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
-
 	var newUser user.User
 
-	_ = json.NewDecoder(r.Body).Decode(&newUser)
+	json.NewDecoder(r.Body).Decode(&newUser)
 
 	passwordHash := user.HashPassword([]byte(newUser.Password))
 
@@ -38,17 +35,16 @@ func Create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode("{ message: User wiith given ID not found.")
+		log.Println("Error creating user", err)
+		return
 	}
 
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-
 	json.NewEncoder(w).Encode(user)
 }
 
 func List(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
-
 	page, err := strconv.ParseInt(r.FormValue("page"), 10, 32)
 	limit, err := strconv.ParseInt(r.FormValue("limit"), 10, 32)
 	sort := r.FormValue("sort")
@@ -77,20 +73,19 @@ func List(w http.ResponseWriter, r *http.Request) {
 	list, err := userCollection.Find(context.TODO(), query, findOptions)
 
 	if err != nil {
-		log.Fatalln("Error listing users", err)
+		log.Println("Error listing users", err)
 	}
 
 	list.All(context.TODO(), &usersList)
 
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(usersList)
 }
 
 func Read(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
 	params := mux.Vars(r)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
-
-	fmt.Println(id)
 
 	var user user.User
 
@@ -98,24 +93,22 @@ func Read(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		if err := json.NewEncoder(w).Encode(err); err != nil {
-			panic(err)
-		}
+		log.Println("Error getting user", err)
 		return
 	}
 
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
-
 	params := mux.Vars(r)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 
 	var newUser user.User
 
-	_ = json.NewDecoder(r.Body).Decode(&newUser)
+	json.NewDecoder(r.Body).Decode(&newUser)
 
 	var setElements bson.D
 
@@ -140,25 +133,27 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	updated, err := userCollection.UpdateOne(context.TODO(), bson.M{"_id": id}, updatedUser)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println("Error updating user", err)
 	}
 
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(updated)
 }
 
 func Delete(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
 	params := mux.Vars(r)
 	id, _ := primitive.ObjectIDFromHex(params["id"])
 
 	deleted, err := userCollection.DeleteOne(context.TODO(), bson.M{"_id": id})
 
-	fmt.Println(deleted)
-
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("Error deleting user", err)
 		return
 	}
 
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(deleted)
 }

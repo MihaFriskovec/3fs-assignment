@@ -1,7 +1,7 @@
 package user
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/MihaFriskovec/3fs-assignment/db"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,6 +22,12 @@ var collection *mongo.Collection
 
 func init() {
 	collection = db.ConnectDatabase("3fs").Collection("users")
+
+	if collection == nil {
+		log.Println("DB ERROR: Error connecting to users collection")
+	} else {
+		log.Println("Connected to users collection")
+	}
 }
 
 func Users() *mongo.Collection {
@@ -32,7 +38,7 @@ func HashPassword(password []byte) string {
 	hash, err := bcrypt.GenerateFromPassword(password, bcrypt.MinCost)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println("Error Hasisg password", err)
 	}
 
 	return string(hash)
