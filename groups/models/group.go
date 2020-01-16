@@ -2,6 +2,7 @@ package group
 
 import (
 	"log"
+	"os"
 
 	"github.com/MihaFriskovec/3fs-assignment/db"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,7 +18,8 @@ type Group struct {
 var collection *mongo.Collection
 
 func init() {
-	collection = db.ConnectDatabase("3fs").Collection("groups")
+	dbName := os.Getenv("DB_NAME")
+	collection = db.ConnectDatabase(dbName).Collection("groups")
 
 	if collection == nil {
 		log.Println("Error connecting to users collection")

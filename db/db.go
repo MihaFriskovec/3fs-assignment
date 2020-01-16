@@ -2,8 +2,11 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -12,7 +15,18 @@ import (
 var c *mongo.Client
 
 func init() {
-	clientOptions := options.Client().ApplyURI("mongodb+srv://appUser:byhvo2-rigDiq-jincam@3fs-bhpqi.mongodb.net/3fs?retryWrites=true&w=majority")
+	e := godotenv.Load() //Load .env file
+	if e != nil {
+		fmt.Print(e)
+	}
+
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASS")
+	dbName := os.Getenv("DB_NAME")
+
+	connectionURL := fmt.Sprintf("mongodb+srv://%s:%s@3fs-bhpqi.mongodb.net/%s?retryWrites=true&w=majority", dbUser, dbPassword, dbName)
+
+	clientOptions := options.Client().ApplyURI(connectionURL)
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 

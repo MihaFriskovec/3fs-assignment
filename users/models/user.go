@@ -1,7 +1,9 @@
 package user
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/MihaFriskovec/3fs-assignment/db"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,7 +23,10 @@ type User struct {
 var collection *mongo.Collection
 
 func init() {
-	collection = db.ConnectDatabase("3fs").Collection("users")
+	dbName := os.Getenv("DB_NAME")
+
+	fmt.Println(dbName)
+	collection = db.ConnectDatabase(dbName).Collection("users")
 
 	if collection == nil {
 		log.Println("DB ERROR: Error connecting to users collection")

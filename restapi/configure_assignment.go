@@ -47,8 +47,6 @@ func configureAPI(api *operations.AssignmentAPI) http.Handler {
 			return groups.NewCreateGroupDefault(500).WithPayload(&models.Error{Type: "Database error", Message: err.Error(), Status: 500})
 		}
 
-		// params.Body.ID = string(groupID)
-
 		return groups.NewCreateGroupCreated().WithPayload(params.Body)
 	})
 

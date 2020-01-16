@@ -21,7 +21,7 @@ func init() {
 	groupCollection = group.Groups()
 }
 
-func Create(body *models.Group) (error, *mongo.InsertOneResult) {
+func Create(body *models.Group) (error, *models.Group) {
 	newGroup := group.Group{}
 
 	newGroup.Name = body.Name
@@ -33,7 +33,11 @@ func Create(body *models.Group) (error, *mongo.InsertOneResult) {
 		return errors.New("Error creating a new group"), nil
 	}
 
-	return nil, group
+	if oid, ok := group.InsertedID.(primitive.ObjectID); ok {
+		body.ID = *&oid
+	}
+
+	return nil, body
 }
 
 func List(page int64, limit int64, sort string, project string) (error, []*models.Group) {
