@@ -22,10 +22,10 @@ type User struct {
 	// Required: true
 	// Max Length: 50
 	// Min Length: 1
-	Email *string `json:"email"`
+	Email *string `json:"email,omitempty"`
 
 	// group
-	Group primitive.ObjectID `json:"group,omitempty" bson:"group"`
+	Group primitive.ObjectID `json:"group,omitempty" bson:"group,omitempty"`
 
 	// id
 	// Read Only: true
@@ -35,13 +35,13 @@ type User struct {
 	// Required: true
 	// Max Length: 50
 	// Min Length: 1
-	Name *string `json:"name"`
+	Name *string `json:"name,omitempty"`
 
 	// password
 	// Required: true
 	// Max Length: 100
 	// Min Length: 6
-	Password *string `json:"password"`
+	Password *string `json:"password,omitempty"`
 }
 
 // Validate validates this user

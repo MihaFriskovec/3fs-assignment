@@ -44,15 +44,6 @@ func init() {
 
 	c = client
 	log.Println("Connected to MongoDB")
-
-	// err1 := client.Ping(context.Background(), readpref.Primary())
-
-	// if err1 != nil {
-	// 	log.Fatal("Couldn't ping to the database", err1)
-	// } else {
-	// 	log.Println("Connected to MongoDB")
-
-	// }
 }
 
 func ConnectDatabase(databaseName string) *mongo.Database {
