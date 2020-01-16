@@ -2,15 +2,12 @@ package user
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"log"
-	"net/http"
-	"strconv"
 
 	"github.com/MihaFriskovec/3fs-assignment/db/helpers"
-	"github.com/MihaFriskovec/3fs-assignment/errors"
+	"github.com/MihaFriskovec/3fs-assignment/models"
 	user "github.com/MihaFriskovec/3fs-assignment/users/models"
-	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -23,36 +20,31 @@ func init() {
 	userCollection = user.Users()
 }
 
-func Create(w http.ResponseWriter, r *http.Request) {
-	var newUser user.User
+func Create(body *models.User) (error, *models.User) {
+	newUser := user.User{}
 
-	json.NewDecoder(r.Body).Decode(&newUser)
-
-	passwordHash := user.HashPassword([]byte(newUser.Password))
-
-	newUser.Password = passwordHash
+	newUser.Name = body.Name
+	newUser.Email = body.Email
+	newUser.Password = user.HashPassword([]byte(*body.Password))
+	newUser.Group = body.Group
 
 	user, err := userCollection.InsertOne(context.TODO(), newUser)
 
 	if err != nil {
-		log.Println("Error creating user", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error creating new user", 500))
-		return
+		log.Println("Error creating User", err)
+		return errors.New("Error creating a new user"), nil
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	*body.Password = newUser.Password
+	if oid, ok := user.InsertedID.(primitive.ObjectID); ok {
+		body.ID = *&oid
+	}
+
+	return nil, body
 }
 
-func List(w http.ResponseWriter, r *http.Request) {
-	page, err := strconv.ParseInt(r.FormValue("page"), 10, 32)
-	limit, err := strconv.ParseInt(r.FormValue("limit"), 10, 32)
-	sort := r.FormValue("sort")
-	project := r.FormValue("select")
-
-	var usersList []user.User
+func List(page int64, limit int64, sort string, project string) (error, []*models.User) {
+	var usersList []*models.User
 
 	var query = bson.M{}
 
@@ -72,99 +64,75 @@ func List(w http.ResponseWriter, r *http.Request) {
 	findOptions.SetLimit(limit)
 	findOptions.SetSkip(page*limit - limit)
 
-	list, err := userCollection.Find(context.TODO(), query, findOptions)
-
-	w.Header().Add("Content-Type", "application/json")
+	cursor, err := userCollection.Find(context.TODO(), query, findOptions)
 
 	if err != nil {
-		log.Println("Error listing users", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error reading users", 500))
-		return
+		log.Fatalln("Error listing Users", err)
+		return errors.New("Error listing users"), nil
 	}
 
-	list.All(context.TODO(), &usersList)
+	cursor.All(context.TODO(), &usersList)
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(usersList)
+	return nil, usersList
 }
 
-func Read(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	id, _ := primitive.ObjectIDFromHex(params["id"])
-
-	var user user.User
+func Read(id primitive.ObjectID) (error, *models.User) {
+	var user *models.User
 
 	err := userCollection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&user)
 
-	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
-		log.Println("Error reading user", err)
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(errors.NewError("Database error", "User with given id not found", 404))
-		return
+		log.Println("Error reading User", err)
+		return errors.New("Error reading User"), nil
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(user)
+	return nil, user
 }
 
-func Update(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	id, _ := primitive.ObjectIDFromHex(params["id"])
-
-	var newUser user.User
-
-	json.NewDecoder(r.Body).Decode(&newUser)
-
+func Update(body *models.User, id primitive.ObjectID) (error, *mongo.UpdateResult) {
 	var setElements bson.D
 
-	if len(newUser.Name) > 0 {
-		setElements = append(setElements, bson.E{"name", newUser.Name})
+	if len(*body.Name) > 0 {
+		setElements = append(setElements, bson.E{"name", body.Name})
 	}
 
-	if len(newUser.Email) > 0 {
-		setElements = append(setElements, bson.E{"email", newUser.Email})
+	if len(*body.Email) > 0 {
+		setElements = append(setElements, bson.E{"email", body.Email})
 	}
 
-	if len(newUser.Group) > 0 {
-		setElements = append(setElements, bson.E{"group", newUser.Group})
+	if len(body.Group) > 0 {
+		setElements = append(setElements, bson.E{"user", body.Group})
 	}
 
-	if len(newUser.Password) > 0 {
-		setElements = append(setElements, bson.E{"password", user.HashPassword([]byte(newUser.Password))})
+	if len(*body.Password) > 0 {
+		password := user.HashPassword([]byte(*body.Password))
+		setElements = append(setElements, bson.E{"password", password})
+		*body.Password = password
 	}
 
 	updatedUser := bson.M{"$set": setElements}
 
 	updated, err := userCollection.UpdateOne(context.TODO(), bson.M{"_id": id}, updatedUser)
 
-	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
-		log.Println("Error updating user", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error updating user", 500))
-		return
+		log.Println("Error updating User", err)
+		return errors.New("Error updating User"), nil
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(updated)
+	if (updated.MatchedCount) == 0 {
+		log.Println("Error updating User. No records found to update")
+	}
+
+	return nil, updated
 }
 
-func Delete(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	id, _ := primitive.ObjectIDFromHex(params["id"])
-
+func Delete(id primitive.ObjectID) (error, *mongo.DeleteResult) {
 	deleted, err := userCollection.DeleteOne(context.TODO(), bson.M{"_id": id})
 
-	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
-		log.Println("Error deleting user", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(errors.NewError("Database error", "Error updating user", 500))
-		return
+		log.Println("Error deleting User", err)
+		return errors.New("Error deleting User"), nil
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(deleted)
+	return nil, deleted
 }

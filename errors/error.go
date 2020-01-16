@@ -1,13 +1,17 @@
-package errors
+package customerrors
 
-import errors "github.com/MihaFriskovec/3fs-assignment/errors/models"
+type CustomError struct {
+	Type    string `json:"type"`
+	Message string `json:"message"`
+	Status  int    `json:"status"`
+}
 
-func NewError(errorType string, message string, status int) errors.Error {
-	err := errors.Error{}
+func (e *CustomError) Error() CustomError {
+	err := CustomError{}
 
-	err.Type = errorType
-	err.Message = message
-	err.Status = status
+	err.Type = e.Type
+	err.Message = e.Message
+	err.Status = e.Status
 
 	return err
 }

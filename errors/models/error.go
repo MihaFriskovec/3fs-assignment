@@ -1,4 +1,4 @@
-package errors
+package customerrors
 
 type Error struct {
 	Type    string `json:"type"`
