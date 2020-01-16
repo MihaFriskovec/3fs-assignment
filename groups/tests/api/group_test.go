@@ -24,3 +24,5 @@ func TestCreateGroup(t *testing.T) {
 		t.Error("Error saving Group.Name")
 	}
 }
+
+func TestListGroup(t *testing.T) {}
