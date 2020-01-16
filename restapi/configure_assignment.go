@@ -52,7 +52,7 @@ func configureAPI(api *operations.AssignmentAPI) http.Handler {
 
 	api.GroupsListGroupsHandler = groups.ListGroupsHandlerFunc(func(params groups.ListGroupsParams) middleware.Responder {
 		var page int64 = 1
-		var limit int64 = 1
+		var limit int64 = 10
 		var sort string = ""
 		var project string = ""
 
@@ -104,6 +104,12 @@ func configureAPI(api *operations.AssignmentAPI) http.Handler {
 			return groups.NewDeleteGroupBadRequest().WithPayload(&models.Error{Type: "User error", Message: "Invalid ObjectId", Status: 400})
 		}
 
+		err, inUse := user.CheckGroupInUse(groupID)
+
+		if inUse == true {
+			return groups.NewDeleteGroupBadRequest().WithPayload(&models.Error{Type: "User error", Message: "Can not delete Group used by User", Status: 400})
+		}
+
 		err, group := group.Delete(groupID)
 
 		if err != nil {
@@ -130,7 +136,7 @@ func configureAPI(api *operations.AssignmentAPI) http.Handler {
 			return groups.NewReadGroupDefault(500).WithPayload(&models.Error{Type: "Database error", Message: err.Error(), Status: 500})
 		}
 
-		if group.ModifiedCount > 0 {
+		if group.MatchedCount > 0 {
 			return groups.NewUpdateGroupOK().WithPayload(params.Body)
 		}
 
@@ -138,6 +144,12 @@ func configureAPI(api *operations.AssignmentAPI) http.Handler {
 	})
 
 	api.UsersCreateUserHandler = users.CreateUserHandlerFunc(func(params users.CreateUserParams) middleware.Responder {
+		_, exists := group.GroupExists(params.Body.Group)
+
+		if exists != true {
+			return users.NewCreateUserBadRequest().WithPayload(&models.Error{Type: "User error", Message: "Given group does not exists", Status: 500})
+		}
+
 		err, _ := user.Create(params.Body)
 
 		if err != nil {

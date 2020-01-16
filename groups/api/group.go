@@ -69,7 +69,6 @@ func List(page int64, limit int64, sort string, project string) (error, []*model
 	}
 
 	cursor.All(context.TODO(), &groupsList)
-	fmt.Println(groupsList)
 
 	return nil, groupsList
 }
@@ -88,17 +87,17 @@ func Read(id primitive.ObjectID) (error, *models.Group) {
 }
 
 func Update(body *models.Group, id primitive.ObjectID) (error, *mongo.UpdateResult) {
-	var newGroup group.Group
-
 	var setElements bson.D
 
+	fmt.Println(*body.Name)
 	if len(*body.Name) > 0 {
-		setElements = append(setElements, bson.E{"name", newGroup.Name})
+		setElements = append(setElements, bson.E{"name", body.Name})
 	}
 
 	updatedGroup := bson.M{"$set": setElements}
 
 	updated, err := groupCollection.UpdateOne(context.TODO(), bson.M{"_id": id}, updatedGroup)
+	fmt.Println(updated)
 
 	if err != nil {
 		log.Println("Error updating Group", err)
@@ -109,6 +108,7 @@ func Update(body *models.Group, id primitive.ObjectID) (error, *mongo.UpdateResu
 }
 
 func Delete(id primitive.ObjectID) (error, *mongo.DeleteResult) {
+	// Check if group is in use by any user
 	deleted, err := groupCollection.DeleteOne(context.TODO(), bson.M{"_id": id})
 
 	if err != nil {
@@ -117,4 +117,19 @@ func Delete(id primitive.ObjectID) (error, *mongo.DeleteResult) {
 	}
 
 	return nil, deleted
+}
+
+func GroupExists(id primitive.ObjectID) (error, bool) {
+	count, err := groupCollection.CountDocuments(context.TODO(), bson.M{"_id": id})
+
+	if err != nil {
+		log.Println("Error counting Groups", err)
+		return errors.New("Error reading Group"), false
+	}
+
+	if count != 1 {
+		return nil, false
+	}
+
+	return nil, true
 }

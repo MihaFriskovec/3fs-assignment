@@ -1,7 +1,6 @@
 package user
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -25,7 +24,6 @@ var collection *mongo.Collection
 func init() {
 	dbName := os.Getenv("DB_NAME")
 
-	fmt.Println(dbName)
 	collection = db.ConnectDatabase(dbName).Collection("users")
 
 	if collection == nil {

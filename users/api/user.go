@@ -136,3 +136,18 @@ func Delete(id primitive.ObjectID) (error, *mongo.DeleteResult) {
 
 	return nil, deleted
 }
+
+func CheckGroupInUse(groupID primitive.ObjectID) (error, bool) {
+	count, err := userCollection.CountDocuments(context.TODO(), bson.M{"group": groupID})
+
+	if err != nil {
+		log.Println("Error counting User", err)
+		return errors.New("Error counting Users by group"), false
+	}
+
+	if count < 1 {
+		return nil, false
+	}
+
+	return nil, true
+}

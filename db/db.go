@@ -9,7 +9,6 @@ import (
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 var c *mongo.Client
@@ -20,11 +19,20 @@ func init() {
 		fmt.Print(e)
 	}
 
+	dbType := os.Getenv("DB_TYPE")
+	dbPrefix := os.Getenv("DB_PREFIX")
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASS")
+	dbURL := os.Getenv("DB_URL")
 	dbName := os.Getenv("DB_NAME")
 
-	connectionURL := fmt.Sprintf("mongodb+srv://%s:%s@3fs-bhpqi.mongodb.net/%s?retryWrites=true&w=majority", dbUser, dbPassword, dbName)
+	var connectionURL string
+
+	if dbType == "local" {
+		connectionURL = fmt.Sprintf("%s://%s/%s", dbPrefix, dbURL, dbName)
+	} else {
+		connectionURL = fmt.Sprintf("%s://%s:%s@%s/%s?retryWrites=true&w=majority", dbPrefix, dbUser, dbPassword, dbURL, dbName)
+	}
 
 	clientOptions := options.Client().ApplyURI(connectionURL)
 
@@ -34,15 +42,17 @@ func init() {
 		log.Fatal("Couldn't connect to the database", err)
 	}
 
-	err1 := client.Ping(context.Background(), readpref.Primary())
+	c = client
+	log.Println("Connected to MongoDB")
 
-	if err1 != nil {
-		log.Fatal("Couldn't ping to the database", err1)
-	} else {
-		log.Println("Connected to MongoDB")
+	// err1 := client.Ping(context.Background(), readpref.Primary())
 
-		c = client
-	}
+	// if err1 != nil {
+	// 	log.Fatal("Couldn't ping to the database", err1)
+	// } else {
+	// 	log.Println("Connected to MongoDB")
+
+	// }
 }
 
 func ConnectDatabase(databaseName string) *mongo.Database {
