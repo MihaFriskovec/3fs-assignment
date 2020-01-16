@@ -1,0 +1,335 @@
+consumes:
+- application/json
+info:
+  description: First assignment
+  title: 3fs Job Application Assignment
+  version: 0.0.1
+paths: 
+  /groups:
+    get:
+      tags:
+        - Groups
+      operationId: listGroups
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          format: int64
+        - name: limit
+          in: query
+          type: integer
+          format: int64
+          default: 20
+        - name: sort
+          in: query
+          type: string
+        - name: select
+          in: query
+          type: string
+      responses:
+        200:
+          description: List all groups
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/group"
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: Unknown error
+          schema:
+            $ref: "#/definitions/error"
+    post:
+      tags: 
+        - Groups
+      operationId: createGroup
+      parameters:
+        - name: body
+          in: body
+          schema:
+            $ref: "#/definitions/group"
+      responses:
+        201:
+          description: Created
+          schema:
+            $ref: "#/definitions/group"
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: Unknown error
+          schema:
+            $ref: "#/definitions/error"
+  /groups/{id}:
+    parameters:
+      - type: string
+        name: id
+        in: path
+        required: true
+    get:
+      tags:
+        - Groups
+      operationId: readGroup
+      responses:
+        200:
+          description: Read a Group
+          schema:
+            $ref: "#/definitions/group"
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default: 
+          description: Unknown error
+          schema: 
+            $ref: "#/definitions/error"
+    delete: 
+      tags:
+        - Groups
+      operationId: deleteGroup
+      responses:
+        204:
+          description: Deleted
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default: 
+          description: Unknown error
+          schema: 
+            $ref: "#/definitions/error"
+    put:
+      tags:
+        - Groups
+      operationId: updateGroup
+      parameters:
+        - name: body
+          in: body
+          schema:
+            $ref: "#/definitions/group"
+      responses:
+        200:
+          description: Updated
+          schema:
+            $ref: "#/definitions/group"
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+  /users:
+    get:
+      tags:
+        - Users
+      operationId: listUsers
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          format: int64
+        - name: limit
+          in: query
+          type: integer
+          format: int64
+          default: 20
+        - name: sort
+          in: query
+          type: string
+        - name: select
+          in: query
+          type: string
+      responses:
+        200:
+          description: List all Users
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/user"
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: Unknown error
+          schema:
+            $ref: "#/definitions/error"
+    post:
+      tags: 
+        - Users
+      operationId: createUser
+      parameters:
+        - name: body
+          in: body
+          schema:
+            $ref: "#/definitions/user"
+      responses:
+        201:
+          description: Created
+          schema:
+            $ref: "#/definitions/user"
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: Unknown error
+          schema:
+            $ref: "#/definitions/error"
+  /users/{id}:
+    parameters:
+      - type: string
+        name: id
+        in: path
+        required: true
+    get:
+      tags:
+        - Users
+      operationId: readUser
+      responses:
+        200:
+          description: Read a User
+          schema:
+            $ref: "#/definitions/user"
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default: 
+          description: Unknown error
+          schema: 
+            $ref: "#/definitions/error"
+    delete: 
+      tags:
+        - Users
+      operationId: deleteUser
+      responses:
+        204:
+          description: Deleted
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default: 
+          description: Unknown error
+          schema: 
+            $ref: "#/definitions/error"
+    put:
+      tags:
+        - Users
+      operationId: updateUser
+      parameters:
+        - name: body
+          in: body
+          schema:
+            $ref: "#/definitions/user"
+      responses:
+        200:
+          description: Updated
+          schema:
+            $ref: "#/definitions/user"
+        400:
+          description: User error
+          schema:
+            $ref: "#/definitions/error"
+        500:
+          description: Server error
+          schema:
+            $ref: "#/definitions/error"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+produces:
+- application/json
+schemes:
+- http
+swagger: "2.0"
+definitions:
+  group:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+        minLength: 1
+        maxLength: 50
+    required:
+      - name
+      - id
+  user:
+    type: object
+    properties:
+      id:
+        type: string
+        readOnly: true
+      name:
+        type: string
+        minLength: 1
+        maxLength: 50
+      email:
+        type: string
+        minLength: 1
+        maxLength: 50
+      password:
+          type: string
+          minLength: 6
+          maxLength: 100
+      group:
+          type: string
+    required:
+      - name
+      - email
+      - password
+  error:
+    type: object
+    properties:
+      type:
+        type: string
+      message:
+        type: string
+      status:
+        type: integer
+        format: int64
